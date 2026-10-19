@@ -1,48 +1,55 @@
+
 package com.example.smartpantrymanager;
 
 import java.util.List;
 
 public class IngredientMatcher {
 
-    public static boolean recipeMatches(
-            Recipe recipe,
-            List<PantryItem> pantryItems) {
+    // Check if every required ingredient is available.
+    public static boolean recipeMatches(Recipe recipe, List<PantryItem> pantryItems) {
+        return countMissingIngredients(recipe, pantryItems) == 0;
+    }
 
-        if (recipe.getIngredients() == null ||
-                recipe.getIngredients().isEmpty()) {
-            return false;
+    // Check if exactly one required ingredient is missing.
+    public static boolean recipeAlmostMatches(Recipe recipe, List<PantryItem> pantryItems) {
+        return countMissingIngredients(recipe, pantryItems) == 1;
+    }
+
+    // Count ingredients that are missing or have insufficient quantity.
+    private static int countMissingIngredients(Recipe recipe, List<PantryItem> pantryItems) {
+
+        if (recipe == null || recipe.getIngredients() == null || recipe.getIngredients().isEmpty()) {
+            return -1;
         }
 
-        if (pantryItems == null || pantryItems.isEmpty()) {
-            return false;
+        if (pantryItems == null) {
+            return -1;
         }
 
-        // Check every ingredient required by the recipe.
+        int missingCount = 0;
+
         for (RecipeIngredient required : recipe.getIngredients()) {
 
             double requiredQuantity = convertToBaseUnit(required.getQuantity(), required.getUnit());
-
             double totalAvailable = 0;
 
             // Add together all matching pantry entries.
             for (PantryItem pantryItem : pantryItems) {
 
-                if (namesMatch(required.getName(), pantryItem.getName()) && unitsCompatible(required.getUnit(), pantryItem.getUnit())) {
+                if (namesMatch(required.getName(), pantryItem.getName())
+                        && unitsCompatible(required.getUnit(), pantryItem.getUnit())) {
 
                     totalAvailable += convertToBaseUnit(pantryItem.getQuantity(), pantryItem.getUnit());
                 }
             }
 
-            // Strict matching:
-            // if even one required ingredient does not have
-            // enough quantity, the recipe cannot be suggested.
+            // Count missing or insufficient ingredients.
             if (totalAvailable < requiredQuantity) {
-                return false;
+                missingCount++;
             }
         }
 
-        // Every ingredient exists in enough quantity.
-        return true;
+        return missingCount;
     }
 
     private static boolean namesMatch(String firstName, String secondName) {
@@ -60,10 +67,7 @@ public class IngredientMatcher {
         String normalized = name.toLowerCase().trim();
 
         // Handle simple singular/plural differences.
-        // Examples:
-        // Eggs -> Egg
-        // Potatoes -> Potato
-        // Berries -> Berry
+        // Eggs -> Egg, Potatoes -> Potato, Berries -> Berry
 
         if (normalized.endsWith("ies")) {
             normalized = normalized.substring(0, normalized.length() - 3) + "y";
@@ -83,17 +87,14 @@ public class IngredientMatcher {
         String first = normalizeUnit(firstUnit);
         String second = normalizeUnit(secondUnit);
 
-        // Same units are always compatible.
         if (first.equals(second)) {
             return true;
         }
 
-        // Weight units can be converted.
         if (isWeightUnit(first) && isWeightUnit(second)) {
             return true;
         }
 
-        // Volume units can be converted.
         if (isVolumeUnit(first) && isVolumeUnit(second)) {
             return true;
         }
@@ -101,45 +102,24 @@ public class IngredientMatcher {
         return false;
     }
 
-    private static double convertToBaseUnit(
-            double quantity,
-            String unit) {
+    private static double convertToBaseUnit(double quantity, String unit) {
 
         String normalizedUnit = normalizeUnit(unit);
 
         switch (normalizedUnit) {
 
-            // Weight is converted to grams.
+            // Weight converted to grams.
+            case "kg": return quantity * 1000;
+            case "g": return quantity;
 
-            case "kg":
-                return quantity * 1000;
+            // Volume converted to millilitres.
+            case "l": return quantity * 1000;
+            case "ml": return quantity;
+            case "tsp": return quantity * 5;
+            case "tbsp": return quantity * 15;
+            case "cups": return quantity * 250;
 
-            case "g":
-                return quantity;
-
-
-            // Volume is converted to millilitres.
-
-            case "l":
-                return quantity * 1000;
-
-            case "ml":
-                return quantity;
-
-            case "tsp":
-                return quantity * 5;
-
-            case "tbsp":
-                return quantity * 15;
-
-            case "cups":
-                return quantity * 250;
-
-
-            // Items and slices do not need conversion.
-
-            default:
-                return quantity;
+            default: return quantity;
         }
     }
 
@@ -167,12 +147,11 @@ public class IngredientMatcher {
     }
 
     private static boolean isWeightUnit(String unit) {
-
         return unit.equals("g") || unit.equals("kg");
     }
 
     private static boolean isVolumeUnit(String unit) {
-
-        return unit.equals("ml") || unit.equals("l") || unit.equals("tsp") || unit.equals("tbsp") || unit.equals("cups");
+        return unit.equals("ml") || unit.equals("l") || unit.equals("tsp")
+                || unit.equals("tbsp") || unit.equals("cups");
     }
 }
