@@ -6,68 +6,122 @@
     android:orientation="vertical"
     android:background="#F7F9F5">
 
-    <!-- Header -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Suggested Recipes"
-            android:textColor="#1B5E20"
-            android:textSize="26sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Recipes you can make with the ingredients currently in your pantry."
-            android:textColor="#5F6368"
-            android:textSize="14sp" />
-
-    </LinearLayout>
-
-    <!-- Number of matching recipes -->
-    <TextView
-        android:id="@+id/txtRecipeCount"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="8dp"
-        android:text="0 recipes available"
-        android:textColor="#212121"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <!-- Shown when no recipes match -->
-    <TextView
-        android:id="@+id/txtNoRecipes"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="20dp"
-        android:gravity="center"
-        android:padding="24dp"
-        android:text="No recipes match your pantry yet.\nAdd more ingredients and try again."
-        android:textColor="#757575"
-        android:textSize="16sp"
-        android:visibility="gone" />
-
-    <!-- Matching recipes -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerRecipes"
+    <!-- Scrollable recipe content -->
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp" />
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Suggested Recipes"
+                    android:textColor="#1B5E20"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Recipes you can make with the ingredients currently in your pantry."
+                    android:textColor="#5F6368"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+            <!-- Number of fully matching recipes -->
+            <TextView
+                android:id="@+id/txtRecipeCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingBottom="8dp"
+                android:text="0 recipes available"
+                android:textColor="#212121"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Shown when no recipes fully match -->
+            <TextView
+                android:id="@+id/txtNoRecipes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="20dp"
+                android:gravity="center"
+                android:padding="24dp"
+                android:text="No recipes match your pantry yet.\nAdd more ingredients and try again."
+                android:textColor="#757575"
+                android:textSize="16sp"
+                android:visibility="gone" />
+
+            <!-- Fully matching recipes -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerRecipes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:paddingTop="4dp"
+                android:paddingBottom="8dp" />
+
+            <!-- Almost There section title -->
+            <TextView
+                android:id="@+id/txtAlmostThereTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:text="Almost There"
+                android:textColor="#1B5E20"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Number of almost matching recipes -->
+            <TextView
+                android:id="@+id/txtAlmostThereCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingBottom="8dp"
+                android:text="Recipes missing just one ingredient"
+                android:textColor="#5F6368"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <!-- Almost matching recipes -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerAlmostThere"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:paddingTop="4dp"
+                android:paddingBottom="16dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+    </ScrollView>
 
     <!-- Return to pantry -->
     <com.google.android.material.button.MaterialButton
