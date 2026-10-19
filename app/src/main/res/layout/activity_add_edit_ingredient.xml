@@ -83,13 +83,23 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp" />
 
-        <!-- Expiry Date -->
+        <!-- Expiry Date Label -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Expiry date (optional)"
+            android:textColor="#212121"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <!-- Expiry Date Picker Field -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layoutExpiryDate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="Expiry date (optional)"
+            android:layout_marginTop="6dp"
+            app:hintEnabled="false"
             app:endIconMode="none">
 
             <com.google.android.material.textfield.TextInputEditText
