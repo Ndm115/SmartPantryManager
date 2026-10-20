@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -32,6 +34,7 @@ public class MainActivity extends AppCompatActivity
     private final List<PantryItem> pantryItems = new ArrayList<>();
 
     private FirebaseFirestore db;
+    private FirebaseAuth auth;
     private ListenerRegistration pantryListener;
 
     @Override
@@ -40,6 +43,7 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
 
         db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
 
         recyclerPantry = findViewById(R.id.recyclerPantry);
         txtEmptyPantry = findViewById(R.id.txtEmptyPantry);
@@ -49,7 +53,46 @@ public class MainActivity extends AppCompatActivity
 
         setupRecyclerView();
         setupButtons();
-        listenForPantryItems();
+
+        // Wait for Firebase Authentication before loading pantry data.
+        signInUser();
+    }
+
+    private void signInUser() {
+
+        // Reuse the existing anonymous account when available.
+        if (auth.getCurrentUser() != null) {
+            listenForPantryItems();
+            return;
+        }
+
+        // Disable database buttons until sign-in succeeds.
+        btnAddIngredient.setEnabled(false);
+        btnSuggestedRecipes.setEnabled(false);
+
+        auth.signInAnonymously()
+                .addOnSuccessListener(result -> {
+
+                    btnAddIngredient.setEnabled(true);
+                    btnSuggestedRecipes.setEnabled(true);
+
+                    listenForPantryItems();
+                })
+                .addOnFailureListener(e -> Toast.makeText(
+                        MainActivity.this,
+                        "Firebase sign-in failed: " + e.getMessage(),
+                        Toast.LENGTH_LONG
+                ).show());
+    }
+
+    // Get the pantry collection belonging to this user.
+    private CollectionReference getPantryCollection() {
+
+        String userId = auth.getCurrentUser().getUid();
+
+        return db.collection("users")
+                .document(userId)
+                .collection("pantryItems");
     }
 
     private void setupRecyclerView() {
@@ -63,47 +106,52 @@ public class MainActivity extends AppCompatActivity
 
     private void setupButtons() {
 
-        btnAddIngredient.setOnClickListener(v -> {Intent intent = new Intent(MainActivity.this, AddEditIngredientActivity.class);
+        btnAddIngredient.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, AddEditIngredientActivity.class);
             startActivity(intent);
         });
 
-        btnSuggestedRecipes.setOnClickListener(v -> {Intent intent = new Intent(MainActivity.this, SuggestedRecipesActivity.class);
+        btnSuggestedRecipes.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SuggestedRecipesActivity.class);
             startActivity(intent);
         });
 
-        btnSettings.setOnClickListener(v -> {Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+        btnSettings.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
             startActivity(intent);
         });
     }
 
     private void listenForPantryItems() {
 
-        pantryListener = db.collection("pantryItems").addSnapshotListener((value, error) -> {
+        pantryListener = getPantryCollection().addSnapshotListener((value, error) -> {
 
-                    if (error != null) {
+            if (error != null) {
 
-                        Toast.makeText(MainActivity.this, "Unable to load pantry: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this,
+                        "Unable to load pantry: " + error.getMessage(),
+                        Toast.LENGTH_LONG).show();
 
-                        return;
-                    }
+                return;
+            }
 
-                    pantryItems.clear();
+            pantryItems.clear();
 
-                    if (value != null) {
+            if (value != null) {
 
-                        for (QueryDocumentSnapshot document : value) {
+                for (QueryDocumentSnapshot document : value) {
 
-                            PantryItem item = document.toObject(PantryItem.class);
+                    PantryItem item = document.toObject(PantryItem.class);
 
-                            item.setId(document.getId());
+                    item.setId(document.getId());
 
-                            pantryItems.add(item);
-                        }
-                    }
+                    pantryItems.add(item);
+                }
+            }
 
-                    pantryAdapter.notifyDataSetChanged();
-                    updateEmptyState();
-                });
+            pantryAdapter.notifyDataSetChanged();
+            updateEmptyState();
+        });
     }
 
     private void updateEmptyState() {
@@ -124,9 +172,7 @@ public class MainActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
 
-        // Refresh pantry cards when returning from Settings.
-        // This makes changes such as "Show expiry dates"
-        // appear immediately.
+        // Refresh pantry cards after returning from Settings.
         if (pantryAdapter != null) {
             pantryAdapter.notifyDataSetChanged();
         }
@@ -149,8 +195,12 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onDeleteClick(PantryItem item) {
 
-        new AlertDialog.Builder(this).setTitle("Delete Ingredient").setMessage("Are you sure you want to remove " + item.getName() + " from your pantry?")
-                .setPositiveButton("Delete", (dialog, which) -> deletePantryItem(item)).setNegativeButton("Cancel", null).show();
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Ingredient")
+                .setMessage("Are you sure you want to remove " + item.getName() + " from your pantry?")
+                .setPositiveButton("Delete", (dialog, which) -> deletePantryItem(item))
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void deletePantryItem(PantryItem item) {
@@ -158,19 +208,22 @@ public class MainActivity extends AppCompatActivity
         if (item.getId() == null || item.getId().isEmpty()) {
 
             Toast.makeText(this, "Unable to delete ingredient.", Toast.LENGTH_SHORT).show();
-
             return;
         }
 
-        db.collection("pantryItems")
+        getPantryCollection()
                 .document(item.getId())
                 .delete()
-                .addOnSuccessListener(unused ->
-
-                        Toast.makeText(MainActivity.this, item.getName() + " deleted.", Toast.LENGTH_SHORT).show()).addOnFailureListener(e ->
-
-                        Toast.makeText(MainActivity.this, "Delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
-                );
+                .addOnSuccessListener(unused -> Toast.makeText(
+                        MainActivity.this,
+                        item.getName() + " deleted.",
+                        Toast.LENGTH_SHORT
+                ).show())
+                .addOnFailureListener(e -> Toast.makeText(
+                        MainActivity.this,
+                        "Delete failed: " + e.getMessage(),
+                        Toast.LENGTH_LONG
+                ).show());
     }
 
     @Override
