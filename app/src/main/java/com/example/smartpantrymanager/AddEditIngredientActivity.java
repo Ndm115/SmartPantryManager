@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Calendar;
@@ -36,6 +38,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
     private Button btnCancel;
 
     private FirebaseFirestore db;
+    private FirebaseAuth auth;
 
     private String itemId = null;
     private boolean isEditMode = false;
@@ -58,6 +61,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_edit_ingredient);
 
         db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
 
         connectViews();
         setupUnitSpinner();
@@ -66,35 +70,40 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         setupButtons();
     }
 
+    // Get the pantry collection belonging to the signed-in user.
+    private CollectionReference getPantryCollection() {
+
+        String userId = auth.getCurrentUser().getUid();
+
+        return db.collection("users")
+                .document(userId)
+                .collection("pantryItems");
+    }
+
     private void connectViews() {
 
         txtFormTitle = findViewById(R.id.txtFormTitle);
 
         layoutIngredientName = findViewById(R.id.layoutIngredientName);
-
         layoutQuantity = findViewById(R.id.layoutQuantity);
 
         editIngredientName = findViewById(R.id.editIngredientName);
-
         editQuantity = findViewById(R.id.editQuantity);
-
         editExpiryDate = findViewById(R.id.editExpiryDate);
 
         spinnerUnit = findViewById(R.id.spinnerUnit);
 
         btnSaveIngredient = findViewById(R.id.btnSaveIngredient);
-
         btnCancel = findViewById(R.id.btnCancel);
     }
 
     private void setupUnitSpinner() {
 
-        ArrayAdapter<String> adapter =
-                new ArrayAdapter<>(
-                        this,
-                        android.R.layout.simple_spinner_item,
-                        units
-                );
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                units
+        );
 
         adapter.setDropDownViewResource(
                 android.R.layout.simple_spinner_dropdown_item
@@ -111,17 +120,10 @@ public class AddEditIngredientActivity extends AppCompatActivity {
 
             itemId = getIntent().getStringExtra("itemId");
 
-            String name =
-                    getIntent().getStringExtra("name");
-
-            double quantity =
-                    getIntent().getDoubleExtra("quantity", 0);
-
-            String unit =
-                    getIntent().getStringExtra("unit");
-
-            String expiryDate =
-                    getIntent().getStringExtra("expiryDate");
+            String name = getIntent().getStringExtra("name");
+            double quantity = getIntent().getDoubleExtra("quantity", 0);
+            String unit = getIntent().getStringExtra("unit");
+            String expiryDate = getIntent().getStringExtra("expiryDate");
 
             txtFormTitle.setText("Edit Ingredient");
             btnSaveIngredient.setText("Update Ingredient");
@@ -162,17 +164,24 @@ public class AddEditIngredientActivity extends AppCompatActivity {
             int month = calendar.get(Calendar.MONTH);
             int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-            DatePickerDialog datePickerDialog =
-                    new DatePickerDialog(AddEditIngredientActivity.this, (view, selectedYear, selectedMonth, selectedDay) -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                    AddEditIngredientActivity.this,
+                    (view, selectedYear, selectedMonth, selectedDay) -> {
 
-                                String date = String.format(Locale.getDefault(), "%04d-%02d-%02d", selectedYear, selectedMonth + 1, selectedDay);
+                        String date = String.format(
+                                Locale.getDefault(),
+                                "%04d-%02d-%02d",
+                                selectedYear,
+                                selectedMonth + 1,
+                                selectedDay
+                        );
 
-                                editExpiryDate.setText(date);
-                            },
-                            year,
-                            month,
-                            day
-                    );
+                        editExpiryDate.setText(date);
+                    },
+                    year,
+                    month,
+                    day
+            );
 
             datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
 
@@ -207,7 +216,6 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         if (name.isEmpty()) {
 
             layoutIngredientName.setError("Ingredient name is required.");
-
             editIngredientName.requestFocus();
             return;
         }
@@ -215,7 +223,6 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         if (quantityText.isEmpty()) {
 
             layoutQuantity.setError("Quantity is required.");
-
             editQuantity.requestFocus();
             return;
         }
@@ -227,7 +234,6 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         } catch (NumberFormatException e) {
 
             layoutQuantity.setError("Enter a valid quantity.");
-
             editQuantity.requestFocus();
             return;
         }
@@ -235,7 +241,6 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         if (quantity <= 0) {
 
             layoutQuantity.setError("Quantity must be greater than zero.");
-
             editQuantity.requestFocus();
             return;
         }
@@ -253,6 +258,13 @@ public class AddEditIngredientActivity extends AppCompatActivity {
 
     private void saveIngredient(String name, double quantity, String unit, String expiryDate) {
 
+        // Prevent saving before Firebase sign-in is ready.
+        if (auth.getCurrentUser() == null) {
+
+            Toast.makeText(this, "Please wait for Firebase sign-in.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         btnSaveIngredient.setEnabled(false);
 
         Map<String, Object> ingredient = new HashMap<>();
@@ -264,30 +276,55 @@ public class AddEditIngredientActivity extends AppCompatActivity {
 
         if (isEditMode && itemId != null) {
 
-            db.collection("pantryItems").document(itemId).update(ingredient).addOnSuccessListener(unused -> {
+            // Update an existing ingredient in this user's pantry.
+            getPantryCollection()
+                    .document(itemId)
+                    .update(ingredient)
+                    .addOnSuccessListener(unused -> {
 
-                        Toast.makeText(AddEditIngredientActivity.this, "Ingredient updated successfully.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(
+                                AddEditIngredientActivity.this,
+                                "Ingredient updated successfully.",
+                                Toast.LENGTH_SHORT
+                        ).show();
 
                         finish();
+
                     }).addOnFailureListener(e -> {
 
                         btnSaveIngredient.setEnabled(true);
 
-                        Toast.makeText(AddEditIngredientActivity.this, "Update failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(
+                                AddEditIngredientActivity.this,
+                                "Update failed: " + e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
                     });
 
         } else {
 
-            db.collection("pantryItems").add(ingredient).addOnSuccessListener(documentReference -> {
+            // Add a new ingredient to this user's pantry.
+            getPantryCollection()
+                    .add(ingredient)
+                    .addOnSuccessListener(documentReference -> {
 
-                        Toast.makeText(AddEditIngredientActivity.this, "Ingredient added successfully.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(
+                                AddEditIngredientActivity.this,
+                                "Ingredient added successfully.",
+                                Toast.LENGTH_SHORT
+                        ).show();
 
                         finish();
+
                     }).addOnFailureListener(e -> {
 
                         btnSaveIngredient.setEnabled(true);
 
-                        Toast.makeText(AddEditIngredientActivity.this, "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(
+                                AddEditIngredientActivity.this,
+                                "Save failed: " + e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
                     });
         }
     }
