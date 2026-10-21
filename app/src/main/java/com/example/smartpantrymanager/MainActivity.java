@@ -1,6 +1,7 @@
 package com.example.smartpantrymanager;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -19,6 +20,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
@@ -149,9 +151,57 @@ public class MainActivity extends AppCompatActivity
                 }
             }
 
+            // Apply the selected sorting preference.
+            sortPantryItems();
+
             pantryAdapter.notifyDataSetChanged();
             updateEmptyState();
         });
+    }
+
+    // Sort pantry items based on the option selected in Settings.
+    private void sortPantryItems() {
+
+        SharedPreferences preferences = getSharedPreferences(
+                "SmartPantryPreferences", MODE_PRIVATE
+        );
+
+        int sortOption = preferences.getInt("sortPantry", 0);
+
+        if (sortOption == 0) {
+
+            // Name A to Z.
+            Collections.sort(pantryItems, (a, b) ->
+                    a.getName().compareToIgnoreCase(b.getName())
+            );
+
+        } else if (sortOption == 1) {
+
+            // Name Z to A.
+            Collections.sort(pantryItems, (a, b) ->
+                    b.getName().compareToIgnoreCase(a.getName())
+            );
+
+        } else if (sortOption == 2) {
+
+            // Expiry date: soonest first.
+            Collections.sort(pantryItems, (a, b) -> {
+
+                String dateA = a.getExpiryDate();
+                String dateB = b.getExpiryDate();
+
+                if (dateA == null || dateA.isEmpty()) {
+                    return (dateB == null || dateB.isEmpty()) ? 0 : 1;
+                }
+
+                if (dateB == null || dateB.isEmpty()) {
+                    return -1;
+                }
+
+                // Dates use yyyy-MM-dd, so text comparison works.
+                return dateA.compareTo(dateB);
+            });
+        }
     }
 
     private void updateEmptyState() {
@@ -172,8 +222,9 @@ public class MainActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
 
-        // Refresh pantry cards after returning from Settings.
+        // Refresh sorting and expiry display after returning from Settings.
         if (pantryAdapter != null) {
+            sortPantryItems();
             pantryAdapter.notifyDataSetChanged();
         }
     }
