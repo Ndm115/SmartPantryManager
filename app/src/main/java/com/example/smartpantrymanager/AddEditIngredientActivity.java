@@ -3,6 +3,7 @@ package com.example.smartpantrymanager;
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -28,7 +29,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
     private TextInputLayout layoutIngredientName;
     private TextInputLayout layoutQuantity;
 
-    private TextInputEditText editIngredientName;
+    private AutoCompleteTextView editIngredientName;
     private TextInputEditText editQuantity;
     private TextInputEditText editExpiryDate;
 
@@ -44,15 +45,47 @@ public class AddEditIngredientActivity extends AppCompatActivity {
     private boolean isEditMode = false;
 
     private final String[] units = {
-            "items",
-            "g",
-            "kg",
-            "ml",
-            "l",
-            "tsp",
-            "tbsp",
-            "cups",
-            "slices"
+            "items", "g", "kg", "ml", "l",
+            "tsp", "tbsp", "cups", "slices"
+    };
+
+    // Common ingredient suggestions.
+    // Users can still enter ingredients not listed here.
+    private final String[] ingredientSuggestions = {
+            "Apple",
+            "Banana",
+            "Beef",
+            "Bell Pepper",
+            "Bread",
+            "Broccoli",
+            "Butter",
+            "Carrot",
+            "Cheese",
+            "Chicken",
+            "Chicken Breast",
+            "Egg",
+            "Eggs",
+            "Flour",
+            "Garlic",
+            "Honey",
+            "Lemon",
+            "Lettuce",
+            "Milk",
+            "Mushrooms",
+            "Oats",
+            "Olive Oil",
+            "Onion",
+            "Pasta",
+            "Pepper",
+            "Potato",
+            "Rice",
+            "Salt",
+            "Spinach",
+            "Sugar",
+            "Tomato",
+            "Tomato Paste",
+            "Tuna",
+            "Yogurt"
     };
 
     @Override
@@ -65,6 +98,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
 
         connectViews();
         setupUnitSpinner();
+        setupIngredientSuggestions();
         checkForEditMode();
         setupExpiryDatePicker();
         setupButtons();
@@ -110,6 +144,21 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         );
 
         spinnerUnit.setAdapter(adapter);
+    }
+
+    // Show matching ingredient suggestions as the user types.
+    private void setupIngredientSuggestions() {
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                ingredientSuggestions
+        );
+
+        editIngredientName.setAdapter(adapter);
+
+        // Show suggestions after the first character.
+        editIngredientName.setThreshold(1);
     }
 
     private void checkForEditMode() {
@@ -183,7 +232,8 @@ public class AddEditIngredientActivity extends AppCompatActivity {
                     day
             );
 
-            datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
+            datePickerDialog.getDatePicker()
+                    .setMinDate(System.currentTimeMillis() - 1000);
 
             datePickerDialog.show();
         });
@@ -261,7 +311,11 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         // Prevent saving before Firebase sign-in is ready.
         if (auth.getCurrentUser() == null) {
 
-            Toast.makeText(this, "Please wait for Firebase sign-in.", Toast.LENGTH_LONG).show();
+            Toast.makeText(
+                    this,
+                    "Please wait for Firebase sign-in.",
+                    Toast.LENGTH_LONG
+            ).show();
             return;
         }
 
@@ -276,7 +330,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
 
         if (isEditMode && itemId != null) {
 
-            // Update an existing ingredient in this user's pantry.
+            // Update an existing ingredient.
             getPantryCollection()
                     .document(itemId)
                     .update(ingredient)
@@ -303,7 +357,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
 
         } else {
 
-            // Add a new ingredient to this user's pantry.
+            // Add a new ingredient.
             getPantryCollection()
                     .add(ingredient)
                     .addOnSuccessListener(documentReference -> {
