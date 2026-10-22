@@ -13,6 +13,7 @@
         android:orientation="vertical"
         android:padding="20dp">
 
+        <!-- Title -->
         <TextView
             android:id="@+id/txtFormTitle"
             android:layout_width="match_parent"
@@ -31,21 +32,43 @@
             android:textColor="#5F6368"
             android:textSize="14sp" />
 
+        <!-- Ingredient Ideas Heading -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Add any Ingredient or choose a suggested one"
+            android:textColor="#1B5E20"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
         <!-- Ingredient Name -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layoutIngredientName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Ingredient name">
+            android:hint="Ingredient name"
+            app:boxBackgroundMode="outline">
 
-            <com.google.android.material.textfield.TextInputEditText
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/editIngredientName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textCapWords"
-                android:maxLines="1" />
+                android:singleLine="true"
+                android:padding="16dp"
+                android:completionThreshold="1" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Suggestions Explanation -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Choose a suggested ingredient or type your own."
+            android:textColor="#757575"
+            android:textSize="12sp" />
 
         <!-- Quantity -->
         <com.google.android.material.textfield.TextInputLayout
