@@ -45,6 +45,13 @@ Firebase Anonymous Authentication is used to assign each user a unique ID, allow
 
 The application compares the ingredients in the user's pantry with the ingredients required by each recipe.
 
+## Application Demonstration Video
+
+The application demonstration video is available in this repository as Mobile App demo video.mp4.
+
+To watch the demonstration, click the video file, select Download, and open the downloaded MP4 using a video player.
+
+
 A recipe is only suggested when all required ingredients are available in sufficient quantities. Recipes missing exactly one ingredient are displayed separately under Almost There.
 
 ## Developer
